@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 import { SOCKET_EVENTS } from "../../shared/messages.js";
 
 const socket = io("http://localhost:3001", {
-  autoConnect: true,
+  autoConnect: false,
   transports: ["websocket"],
 });
 
