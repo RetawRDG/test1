@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import AttackDefenseSelector from "./components/AttackDefenseSelector.jsx";
 import PlayerStatus from "./components/PlayerStatus.jsx";
 import ReadyButton from "./components/ReadyButton.jsx";
+import BattleLog from "./components/BattleLog.jsx";
 import { socket, SOCKET_EVENTS } from "./socket.js";
 import "./styles.css";
 
@@ -16,6 +17,8 @@ const App = () => {
   const [gameState, setGameState] = useState({ players: [], turn: 1 });
   // Информация о последнем результате хода
   const [turnResult, setTurnResult] = useState(null);
+  // Журнал событий боя
+  const [battleEvents, setBattleEvents] = useState([]);
   // Состояние ошибок для отображения игроку
   const [error, setError] = useState(null);
 
@@ -32,6 +35,20 @@ const App = () => {
 
     const handleTurnResult = (result) => {
       setTurnResult(result);
+
+      // Сохраняем события боя, пришедшие от сервера, в локальный журнал
+      if (Array.isArray(result?.events)) {
+        setBattleEvents((prev) => [
+          ...prev,
+          ...result.events.map((event, index) => ({
+            turn: event.turn ?? result.turn,
+            id:
+              event.id ??
+              `${result.turn}-${index}-${event.attackerId ?? "unknown"}-${event.attackZone ?? "zone"}`,
+            ...event,
+          })),
+        ]);
+      }
     };
 
     const handleError = (payload) => {
@@ -127,6 +144,8 @@ const App = () => {
           </ul>
         </section>
       )}
+
+      <BattleLog events={battleEvents} playersById={playersById} />
     </main>
   );
 };
