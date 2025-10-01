@@ -2,14 +2,17 @@
 import { useEffect, useMemo, useState } from "react";
 
 import AttackDefenseSelector from "./components/AttackDefenseSelector.jsx";
+import Lobby from "./components/Lobby.jsx";
 import PlayerStatus from "./components/PlayerStatus.jsx";
 import ReadyButton from "./components/ReadyButton.jsx";
 import { socket, SOCKET_EVENTS } from "./socket.js";
 import "./styles.css";
 
 const App = () => {
-  // Ник игрока генерируем один раз при загрузке
-  const [nickname] = useState(() => `Гость-${Math.floor(Math.random() * 1000)}`);
+  // Управляем экраном приложения: лобби перед подключением и бой после присоединения
+  const [screen, setScreen] = useState("lobby");
+  // Ник игрока сохраняем после подтверждения во время входа
+  const [nickname, setNickname] = useState("");
   // Храним состояние выбора атаки/блока
   const [selection, setSelection] = useState({ attack: "", block: "" });
   // Состояние игры, приходящее от сервера
@@ -19,11 +22,10 @@ const App = () => {
   // Состояние ошибок для отображения игроку
   const [error, setError] = useState(null);
 
-  // Подписка на события сокета
+  // Подписываемся на события сервера только после перехода в режим боя
   useEffect(() => {
-    socket.io.opts.query = { nickname };
-    if (!socket.connected) {
-      socket.connect();
+    if (screen !== "battle" || !nickname) {
+      return undefined;
     }
 
     const handleGameState = (state) => {
@@ -48,28 +50,70 @@ const App = () => {
       socket.off(SOCKET_EVENTS.TURN_RESULT, handleTurnResult);
       socket.off(SOCKET_EVENTS.ERROR, handleError);
     };
-  }, [nickname]);
+  }, [nickname, screen]);
 
-  // Ищем текущего игрока в списке по никнейму
-  const currentPlayer = useMemo(
-    () => gameState.players.find((player) => player.nickname === nickname),
-    [gameState.players, nickname]
-  );
+  // Обрабатываем присоединение игрока и устанавливаем соединение с сервером
+  const handleJoin = (playerNickname) => {
+    const trimmedNickname = playerNickname.trim();
+
+    if (!trimmedNickname) {
+      return;
+    }
+
+    setNickname(trimmedNickname);
+    setSelection({ attack: "", block: "" });
+    setGameState({ players: [], turn: 1 });
+    setTurnResult(null);
+
+    socket.io.opts.query = { nickname: trimmedNickname };
+    if (!socket.connected) {
+      socket.connect();
+    }
+    socket.emit(SOCKET_EVENTS.PLAYER_JOINED, { nickname: trimmedNickname });
+
+    setScreen("battle");
+  };
+
+  // Ищем текущего игрока в списке по никнейму только во время боя
+  const currentPlayer = useMemo(() => {
+    if (screen !== "battle") {
+      return null;
+    }
+
+    return gameState.players.find((player) => player.nickname === nickname);
+  }, [gameState.players, nickname, screen]);
 
   const playersById = useMemo(() => {
+    if (screen !== "battle") {
+      return new Map();
+    }
+
     const map = new Map();
     gameState.players.forEach((player) => {
       map.set(player.id, player);
     });
     return map;
-  }, [gameState.players]);
+  }, [gameState.players, screen]);
 
-  // Отправка готовности сервера
+  // Отправка готовности сервера (используем только после входа в бой)
   const handleReady = () => {
+    if (screen !== "battle") {
+      return;
+    }
+
     socket.emit(SOCKET_EVENTS.PLAYER_READY, selection);
   };
 
-  const disableReady = !selection.attack || !selection.block || currentPlayer?.ready;
+  const disableReady =
+    screen !== "battle" || !selection.attack || !selection.block || currentPlayer?.ready;
+
+  if (screen === "lobby") {
+    return (
+      <main className="app" aria-live="polite">
+        <Lobby onJoin={handleJoin} />
+      </main>
+    );
+  }
 
   return (
     <main className="app" aria-live="polite">
@@ -119,8 +163,7 @@ const App = () => {
               const player = playersById.get(playerId);
               return (
                 <li key={playerId}>
-                  <strong>{player?.nickname ?? playerId}</strong> получил {result.damageTaken} урона,
-                  HP: {result.hp}
+                  <strong>{player?.nickname ?? playerId}</strong> получил {result.damageTaken} урона, HP: {result.hp}
                 </li>
               );
             })}
