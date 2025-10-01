@@ -1,0 +1,25 @@
+{
+  "name": "morginalovo-zapadnoe",
+  "version": "0.1.0",
+  "description": "Project scaffold for Fight Game MVP 'Моргиналово Западное'.",
+  "type": "module",
+  "scripts": {
+    "start:server": "node server/index.js",
+    "start:client": "parcel client/src/index.html --port 1234",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "parcel": "^2.12.0"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  }
+}
