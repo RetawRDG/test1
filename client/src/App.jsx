@@ -21,10 +21,15 @@ const App = () => {
 
   // Подписка на события сокета
   useEffect(() => {
-    socket.io.opts.query = { nickname };
-    if (!socket.connected) {
-      socket.connect();
-    }
+    // Подключаемся к серверу при входе в лобби с выбранным ником
+    const joinLobby = () => {
+      socket.io.opts.query = { nickname };
+      if (!socket.connected) {
+        socket.connect();
+      }
+    };
+
+    joinLobby();
 
     const handleGameState = (state) => {
       setGameState(state);
@@ -47,6 +52,11 @@ const App = () => {
       socket.off(SOCKET_EVENTS.GAME_STATE, handleGameState);
       socket.off(SOCKET_EVENTS.TURN_RESULT, handleTurnResult);
       socket.off(SOCKET_EVENTS.ERROR, handleError);
+      // Отключаемся при выходе, чтобы очистить соединение и query-параметры
+      if (socket.connected) {
+        socket.disconnect();
+      }
+      socket.io.opts.query = {};
     };
   }, [nickname]);
 
