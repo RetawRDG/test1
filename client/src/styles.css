@@ -286,3 +286,23 @@ main.app {
     grid-template-columns: 1fr;
   }
 }
+/* Статусы битвы для отображения подсказок игрокам */
+.battle__status {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #bfdbfe;
+  font-size: 0.95rem;
+}
+
+.battle__status + .battle__status {
+  margin-top: 12px;
+}
+
+.battle__status--ready {
+  background: rgba(74, 222, 128, 0.2);
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #bbf7d0;
+}
